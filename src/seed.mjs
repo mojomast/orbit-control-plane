@@ -54,6 +54,7 @@ export function seedDemo(store, now = Date.now()) {
       node: 'brrrrrrrr', sandbox: 'orbit-154ccad0934f', runId: 'run-8ba3961e', sessionId: 'oc_sess_health',
       model: 'deepseek-v4.1-flash', tokensIn: 18220, tokensOut: 4104, cost: 0.0042, created: ago(50 * 60 * 1000, now),
       manifest: sha('health-brief'),
+      files: [{ path: 'server/local-workers.mjs', sha256: sha('local-workers.mjs'), change: 'modified', in_scope: true }],
     }),
     attempt('att_disc', 't_disc', 'disconnected', 'launcher unreachable (ECONNREFUSED); attempt keeps running on the PC', {
       node: 'brrrrrrrr', sandbox: 'orbit-disc-11', runId: 'run-disc11', model: 'deepseek-v4.1-flash', created: ago(70 * 60 * 1000, now),
@@ -172,7 +173,7 @@ function task(id, title, column, priority, owner, spec, fileScope, dependencies,
     dependencies,
     summary,
     createdAt: created,
-    updatedAt: created,
+    updatedAt: column === 'done' ? new Date(new Date(created).getTime() + 5 * 60 * 60 * 1000).toISOString() : created,
     history: [
       { at: created, column: 'todo', note: 'opened', actor: owner },
       ...(column !== 'todo' ? [{ at: created, column, note: summary || `moved to ${column}`, actor: 'local-workers' }] : []),

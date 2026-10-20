@@ -161,7 +161,7 @@ svg.chart { width: 100%; height: auto; display: block; }
 .note-card.human { border-color: rgba(240, 180, 41, .6); background: rgba(240, 180, 41, .06); }
 .note-card.auto { border-color: rgba(61, 222, 203, .35); background: rgba(61, 222, 203, .05); }
 .meter-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-.hash { word-break: break-all; color: var(--faint); font-size: 11px; }
+.hash { display: block; word-break: break-all; color: var(--faint); font-size: 11px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .form-grid .wide { grid-column: 1 / -1; }
 .error { color: var(--red); font-size: 13px; }
