@@ -14,6 +14,7 @@ import { queueTask, moveTask, reprioritise, cancelAttempt, retryAttempt, reviewA
 import { buildStats, snapshotSample } from './stats.mjs';
 import { handleGrok } from './grok.mjs';
 import { seedDemo } from './seed.mjs';
+import { createColabStore } from './colab.mjs';
 
 const PUBLIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
@@ -23,6 +24,7 @@ export function createContext(config) {
   const sessions = createSessions();
   const hub = createHub();
   const broker = createBroker();
+  const colab = createColabStore();
   const secrets = () => [...config.tokens.values()].map(entry => entry.token);
   const log = createLogger(secrets);
   if (config.demo && store.taskCount() === 0) seedDemo(store);
@@ -94,6 +96,10 @@ export function createContext(config) {
     else if (req.method === 'POST' && path === '/api/v1/ingest/events') result = ingestEvents(store, auth, body, secrets());
     else if (req.method === 'POST' && path === '/api/v1/ingest/launchers') result = ingestLaunchers(store, auth, body);
     else if (req.method === 'POST' && path === '/api/v1/ingest/grok') result = ingestGrok(store, auth, body, secrets());
+    else if (req.method === 'POST' && path === '/api/v1/ingest/colab') {
+      result = colab.ingest(body);
+      broker.publish('colab', { runs: result.runs });
+    }
     else if (req.method === 'GET' && path === '/api/v1/ingest/intents') {
       if (auth.role !== 'orbit') return send(res, 403, { error: 'only the Orbit connector can pull intents' });
       const limit = Math.min(50, Math.max(1, Number(url.searchParams.get('limit') || 20)));
@@ -105,7 +111,8 @@ export function createContext(config) {
         result = store.finishIntent(match[1], { outcome: body.outcome, detail: body.detail, result: body.result, actor: auth.id });
       } else return send(res, 404, { error: 'unknown ingest route' });
     }
-    broker.publish('update', { scope: path.split('/').pop() });
+    // Google Colab gauges have their own SSE event so a 1-2 s gauge poll does not reload every view
+    if (path !== '/api/v1/ingest/colab') broker.publish('update', { scope: path.split('/').pop() });
     return send(res, 200, result);
   }
 
@@ -150,6 +157,7 @@ export function createContext(config) {
       const events = store.listEvents(url.searchParams.get('since') || 0, url.searchParams.get('limit') || 200);
       return send(res, 200, { events });
     }
+    if (req.method === 'GET' && path === '/api/v1/colab') return send(res, 200, { runs: colab.list() });
     if (req.method === 'GET' && path === '/api/v1/launchers') return send(res, 200, { launchers: store.listLaunchers() });
     if (req.method === 'GET' && path === '/api/v1/stats') return send(res, 200, buildStats(store));
     if (req.method === 'GET' && path === '/api/v1/audit') return send(res, 200, { audit: store.listAudit(200) });

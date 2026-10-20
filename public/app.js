@@ -6,6 +6,7 @@ const VIEWS = [
   ['stats', 'Statistics'],
   ['control', 'Control'],
   ['grok', 'Grok Bots'],
+  ['colab', 'Google Colab'],
 ];
 
 const state = {
@@ -608,6 +609,7 @@ function render() {
     stats: ['Statistics', 'Throughput, cycle time, tokens, utilisation', statsView()],
     control: ['Control', 'Intents Orbit will pull and apply', controlView()],
     grok: ['Grok Bots', 'Proxied to the Orbit host. Agents are not reimplemented here.', grokView()],
+    colab: ['Google Colab runs', 'Live gauges from Comfyrizz runs on Google Colab: tqdm bars, ComfyUI sampler and node progress, render frames.', colabView()],
   }[state.view] || ['Overview', '', overviewView()];
   app.replaceChildren(shell(view[0], view[1], view[2]));
 }
@@ -679,7 +681,63 @@ async function load() {
     state.attemptDetail = detail.attempt;
   }
   if (state.view === 'grok') await loadGrok();
+  await loadColab();
   render();
+}
+
+async function loadColab() {
+  try { state.colabRuns = (await api('/api/v1/colab')).runs || []; }
+  catch { state.colabRuns = state.colabRuns || []; }
+}
+
+const COLAB_STAGES = { phase: 'Phase', job: 'Job', tqdm: 'Progress bar', sampler: 'Sampler', 'sampler-log': 'Sampler (log)', node: 'Nodes', frames: 'Frames', render: 'Render' };
+
+function colabEta(seconds) {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds)) return '';
+  const s = Math.max(0, Math.round(seconds));
+  return s >= 3600 ? `${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}m` : s >= 60 ? `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s` : `${s}s`;
+}
+
+function colabCount(value) {
+  if (typeof value !== 'number') return '';
+  if (Math.abs(value) >= 1e9) return `${(value / 1e9).toFixed(2)}G`;
+  if (Math.abs(value) >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+  if (Math.abs(value) >= 1e4) return `${(value / 1e3).toFixed(1)}k`;
+  return String(+value.toFixed(1));
+}
+
+function colabGauge(gauge) {
+  const pct = gauge.state === 'done' ? 100 : (typeof gauge.n === 'number' && typeof gauge.total === 'number' && gauge.total > 0 ? Math.min(100, Math.max(0, (gauge.n / gauge.total) * 100)) : null);
+  const rate = typeof gauge.rate === 'number' && gauge.rate > 0 ? (gauge.rate >= 1 ? `${colabCount(gauge.rate)}/s` : `${(1 / gauge.rate).toFixed(1)}s/it`) : '';
+  const meta = [
+    typeof gauge.n === 'number' ? `${colabCount(gauge.n)}${typeof gauge.total === 'number' ? ` / ${colabCount(gauge.total)}` : ''}` : '',
+    rate, colabEta(gauge.eta) && `ETA ${colabEta(gauge.eta)}`, gauge.current || '',
+  ].filter(Boolean).join(' · ');
+  const tone = gauge.state === 'failed' ? 'bad' : gauge.state === 'done' ? 'ok' : '';
+  return el('div', { class: `colab-gauge ${tone}`, 'data-stage': gauge.stage }, [
+    el('div', { class: 'row colab-gauge-head' }, [
+      el('span', { class: 'chip', text: COLAB_STAGES[gauge.stage] || gauge.stage }),
+      el('strong', { text: gauge.label || gauge.job }),
+      el('span', { class: 'muted mono', text: gauge.job }),
+      el('span', { class: 'colab-pct', text: pct == null ? '…' : `${pct.toFixed(0)}%` }),
+    ]),
+    el('div', { class: `bar${pct == null ? ' indeterminate' : ''}`, role: 'progressbar', 'aria-valuenow': pct == null ? '' : pct.toFixed(0) }, el('span', { style: `width:${pct == null ? 100 : pct.toFixed(1)}%` })),
+    meta || gauge.state ? el('p', { class: 'muted', text: [meta, gauge.state].filter(Boolean).join(' · ') }) : null,
+  ]);
+}
+
+function colabView() {
+  const runs = state.colabRuns || [];
+  if (!runs.length) return el('div', { class: 'panel' }, el('p', { class: 'muted', text: 'No Google Colab runs reported yet. Comfyrizz writes gauges while a Google Colab run or render is in progress; the connector forwards them here.' }));
+  return el('div', { class: 'stack' }, runs.slice(0, 8).map(run => el('section', { class: 'panel colab-run' }, [
+    el('div', { class: 'row' }, [
+      el('i', { class: `dot ${run.active ? 'on' : 'off'}` }),
+      el('h2', { class: 'mono', text: run.runId }),
+      el('span', { class: `chip ${run.active ? 'ok' : ''}`, text: run.active ? 'live' : 'idle / finished' }),
+      el('span', { class: 'muted', text: `${fmtTime(run.updatedAt)} · ${run.updates} updates` }),
+    ]),
+    ...(run.gauges || []).map(colabGauge),
+  ])));
 }
 
 async function boot() {
@@ -697,4 +755,5 @@ window.addEventListener('hashchange', () => {
 
 const stream = new EventSource('/api/v1/stream');
 stream.addEventListener('update', () => { if (state.me) load().catch(() => {}); });
+stream.addEventListener('colab', () => { if (state.me) loadColab().then(() => { if (state.view === 'colab') render(); }).catch(() => {}); });
 boot();

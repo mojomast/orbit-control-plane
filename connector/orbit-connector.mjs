@@ -4,6 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { toColumn } from '../src/columns.mjs';
 import { scrub } from '../src/redact.mjs';
+import { readColabDir, defaultColabDir } from '../src/colab.mjs';
 
 export function createConnector(opts) {
   const orbitUrl = String(opts.orbitUrl || 'http://127.0.0.1:4318').replace(/\/$/, '');
@@ -14,6 +15,11 @@ export function createConnector(opts) {
   const log = opts.log || ((...parts) => console.log(parts.map(part => typeof part === 'string' ? part : JSON.stringify(part)).join(' ')));
   let ws = null;
   let timer = null;
+  let colabTimer = null;
+  // Google Colab runs: Comfyrizz's per-run gauge files on this host, forwarded when they change
+  const colabDir = opts.colabDir === undefined ? defaultColabDir() : opts.colabDir;
+  const colabPollMs = Number(opts.colabPollMs || process.env.ORBIT_CP_COLAB_POLL_MS || 1500);
+  let colabSignature = '';
 
   const secretValues = () => [opts.boardKey, opts.grokKey, opts.launcherToken, opts.token].filter(value => typeof value === 'string' && value.length >= 8);
 
@@ -149,6 +155,16 @@ export function createConnector(opts) {
       catch (error) { log('intent failed', intent.id, error.message); }
     }
     return snap;
+  }
+
+  async function colabTick() {
+    if (!colabDir) return { sent: false };
+    const runs = readColabDir(colabDir);
+    const signature = runs.map(run => `${run.runId}@${run.signature}:${run.active}`).join('|');
+    if (signature === colabSignature) return { sent: false, runs: runs.length };
+    await cp('POST', '/api/v1/ingest/colab', { runs: runs.map(({ signature: _s, ...run }) => scrub(run, secretValues())) });
+    colabSignature = signature;
+    return { sent: true, runs: runs.length };
   }
 
   async function applyIntent(intent) {
@@ -294,15 +310,20 @@ export function createConnector(opts) {
   }
 
   return {
-    tick, connect, snapshot, applyIntent,
+    tick, connect, snapshot, applyIntent, colabTick,
     start() {
       connect();
+      if (colabDir) {
+        colabTimer = setInterval(() => { colabTick().catch(error => log('colab tick failed:', error.message)); }, colabPollMs);
+        colabTimer.unref?.();
+      }
       timer = setInterval(() => { tick().catch(error => log('tick failed:', error.message)); }, pollMs);
       timer.unref?.();
       return tick();
     },
     stop() {
       clearInterval(timer);
+      clearInterval(colabTimer);
       try { ws?.close(); } catch { /* already closed */ }
     },
   };

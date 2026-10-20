@@ -22,6 +22,7 @@ Base URL is the control plane. Unless noted, viewer routes accept a session cook
 | GET | `/api/v1/stats` | | Rates, cycle time, models, samples, throughput. |
 | GET | `/api/v1/intents` | `status` | Queue for the UI. Does not lease. |
 | GET | `/api/v1/audit` | | Audit log. |
+| GET | `/api/v1/colab` | | Google Colab runs: `{ runs: [{ runId, updatedAt, active, updates, gauges: [{ job, stage, label, n, total, rate, eta, ts, state, current }] }] }`. SSE event `colab` on change. |
 | POST | `/api/v1/grok` | Grok Bots body | Proxied, cached, or `{ "queued": true, "intentId" }`. |
 
 Grok bodies match Orbit's `POST /api/grokbots-app`: `{ "action": "agents" }`, `{ "action": "groups", "op": "list" }`, `{ "action": "groups", "op": "state", "group" }`, `{ "action": "groups", "op": "post", "group", "text" }`, `{ "action": "history", "profile", "agent" }`, `{ "action": "activity", "profile", "agent" }`, `{ "action": "controls", ... }`.
@@ -55,6 +56,7 @@ File scope entries are relative paths without `..`.
 | `POST /api/v1/ingest/events` | orbit; worker only with `attemptId` and `seq` | `{ events: [{ attemptId, seq, kind, text, data }] }` |
 | `POST /api/v1/ingest/launchers` | orbit | `{ nodes: [{ node, healthy, version, model, concurrencyUsed, concurrencyMax, queued }] }` |
 | `POST /api/v1/ingest/grok` | orbit | `{ snapshots: { roster, groups, ... } }` |
+| `POST /api/v1/ingest/colab` | orbit, worker | `{ runs: [...] }` (≤30), as `GET /api/v1/colab`. The connector reads Comfyrizz's gauge files from `ORBIT_CP_COLAB_PROGRESS_DIR` (default `~/.comfyrizz/colab-progress`) every `ORBIT_CP_COLAB_POLL_MS` (1500) and posts on change. |
 | `GET /api/v1/ingest/intents?limit=` | orbit | Leases up to 50 queued intents. |
 | `POST /api/v1/ingest/intents/:id/result` | orbit | `{ outcome: "applied"\|"rejected"\|"deferred", detail, result }` |
 

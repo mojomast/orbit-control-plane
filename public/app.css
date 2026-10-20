@@ -174,3 +174,12 @@ svg.chart { width: 100%; height: auto; display: block; }
   .kpis, .grid-2, .charts, .board, .split, .grok, .form-grid { grid-template-columns: 1fr; }
   .event { grid-template-columns: 1fr; }
 }
+
+.colab-run h2 { margin: 0; }
+.colab-gauge { margin: 10px 0 4px; }
+.colab-gauge .colab-pct { margin-left: auto; font-variant-numeric: tabular-nums; }
+.colab-gauge .bar span { transition: width .4s; }
+.colab-gauge.ok .bar span { background: var(--green); }
+.colab-gauge.bad .bar span { background: var(--red); }
+.bar.indeterminate span { opacity: .3; }
+.colab-gauge p.muted { margin: 4px 0 0; font-size: 12px; }
