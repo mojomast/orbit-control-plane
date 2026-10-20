@@ -16,7 +16,11 @@ The connector uses APIs that already exist on `127.0.0.1:4318`. Nothing in this 
 
 Column words on the wire from `collab-board list` are Orbit's internal statuses (`submitted`, `working`, `review`, `completed`, `input-required`). The connector maps them before the push.
 
-## Proposed hooks
+## Shipped hooks (Orbit integ/live-tree-oct14, launcher 0.1.5)
+
+Hooks 1-3 below are implemented in Orbit: `pump()` honors `dispatch.json`, the adapter reads `concurrency.json` (clamped 1..10) each pump and pushes it to the launcher with `POST /v1/config` (runtime only, a launcher restart reverts to config.json), and `collab-board` has `op: "get"` returning spec, priority, project, fileScope, dependsOn and per-entry history. The connector reports pause/cap intents as `applied` and enriches board tasks via `get`. Priority (4) is still a note.
+
+## Proposed hooks (original design notes)
 
 ### 1. Dispatch pause
 

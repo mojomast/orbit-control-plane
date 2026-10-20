@@ -38,6 +38,7 @@ test('connector pushes a fake Orbit and applies intents', async () => {
     if (req.url === '/api/collab-board') {
       if (token !== BOARD_KEY) return send(401, { error: 'unauthorized' });
       if (body.op === 'list') return send(200, { group: body.group, board: 'p1', entries: [{ id: 't1', title: 'Ship the archive', status: 'working', owner: 'hermes', summary: 'in the sandbox', checkins: [{ by: 'hermes', note: 'started', at: '2026-10-20T12:00:00.000Z' }] }] });
+      if (body.op === 'get') return send(200, { entry: { id: body.entry, spec: 'Ship it. Priority: P1', priority: 1, fileScope: ['src/a.mjs'], dependsOn: ['t0'], history: [{ at: '2026-10-20T12:01:00.000Z', actor: 'hermes', type: 'board.update', data: { status: 'working', note: 'picked up' } }] } });
       if (body.op === 'new') { seen.created += 1; return send(200, { entry: { id: 't_new', title: body.title, status: 'submitted' } }); }
       return send(200, { ok: true, op: body.op });
     }
@@ -77,6 +78,10 @@ test('connector pushes a fake Orbit and applies intents', async () => {
     assert.ok(task, 'board task arrived');
     assert.equal(task.column, 'doing');
     assert.equal(task.groupName, 'Comfyrizz build');
+    assert.equal(task.priority, 1, 'board op get enriches priority');
+    const detail = await (await fetch(`${ctx.base}/api/v1/board/tasks/${task.id}`, { headers: bearer(VIEWER) })).json();
+    assert.match(JSON.stringify(detail), /src\/a\.mjs/);
+    assert.match(JSON.stringify(detail), /picked up/);
     const attempts = await (await fetch(`${ctx.base}/api/v1/attempts`, { headers: bearer(VIEWER) })).json();
     assert.equal(attempts.attempts[0].state, 'running');
     assert.equal(attempts.attempts[0].sandbox, 'orbit-box');
@@ -92,7 +97,7 @@ test('connector pushes a fake Orbit and applies intents', async () => {
     assert.equal(dispatch.paused, true);
     const intents = await (await fetch(`${ctx.base}/api/v1/intents`, { headers: bearer(VIEWER) })).json();
     assert.ok(intents.intents.some(item => item.type === 'attempt.cancel' && item.status === 'applied'));
-    assert.ok(intents.intents.some(item => item.type === 'dispatch.pause' && item.status === 'deferred'));
+    assert.ok(intents.intents.some(item => item.type === 'dispatch.pause' && item.status === 'applied'));
 
     const grok = await fetch(`${ctx.base}/api/v1/grok`, {
       method: 'POST', headers: bearer(VIEWER),

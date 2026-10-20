@@ -67,18 +67,20 @@ export function createConnector(opts) {
     for (const group of groups) {
       try {
         const board = await orbitPost('/api/collab-board', { op: 'list', group: group.id }, boardKey());
-        boardGroups.push({
-          id: group.id,
-          name: group.name,
-          tasks: (board.entries || []).map(entry => ({
+        const tasks = [];
+        for (const entry of board.entries || []) {
+          const task = {
             id: entry.id,
             title: entry.title,
             status: toColumn(entry.status) || 'todo',
             owner: entry.owner,
             summary: entry.summary || '',
             checkins: entry.checkins || [],
-          })),
-        });
+          };
+          Object.assign(task, await entryDetail(group.id, entry));
+          tasks.push(task);
+        }
+        boardGroups.push({ id: group.id, name: group.name, tasks });
       } catch (error) {
         log(`board ${group.name || group.id} skipped:`, error.message);
       }
@@ -102,6 +104,32 @@ export function createConnector(opts) {
       log('agent roster skipped:', error.message);
     }
     return { boardGroups, attempts, launchers, grok: scrub(grok, secretValues()) };
+  }
+
+  // Orbit collab-board op "get" (spec, priority, file scope, deps, history). Cached per entry+status so each
+  // change costs one call; switched off if this Orbit does not have the op yet.
+  const detailCache = new Map();
+  let detailSupported = true;
+  async function entryDetail(groupId, entry) {
+    if (!detailSupported) return {};
+    const key = `${entry.id}:${entry.status}:${(entry.checkins || []).length}`;
+    if (detailCache.get(entry.id)?.key === key) return detailCache.get(entry.id).value;
+    try {
+      const got = (await orbitPost('/api/collab-board', { op: 'get', group: groupId, entry: entry.id }, boardKey())).entry || {};
+      const value = {
+        spec: got.spec || null,
+        project: got.project || undefined,
+        priority: got.priority ?? undefined,
+        fileScope: got.fileScope?.length ? got.fileScope : undefined,
+        dependencies: got.dependsOn?.length ? got.dependsOn : undefined,
+        history: (got.history || []).map(e => ({ at: e.at, status: e.data?.status, note: e.data?.note || e.type, actor: e.actor })),
+      };
+      detailCache.set(entry.id, { key, value });
+      return value;
+    } catch (error) {
+      if (error.status === 400) { detailSupported = false; log('collab-board get not available; board detail limited to list fields'); }
+      return {};
+    }
   }
 
   async function push(snap) {
@@ -185,10 +213,10 @@ export function createConnector(opts) {
         return { detail: payload.accepted ? 'accepted' : 'changes requested' };
       case 'dispatch.pause':
         writeHook('dispatch.json', { paused: payload.paused === true, at: new Date().toISOString() });
-        return { deferred: true, detail: 'wrote control-plane/dispatch.json; local-workers pump() does not read it yet' };
+        return { detail: payload.paused === true ? 'dispatch paused (Orbit local-workers pump() reads control-plane/dispatch.json); running attempts continue' : 'dispatch resumed' };
       case 'launcher.concurrency':
         writeHook('concurrency.json', { nodes: { [payload.node]: payload.max }, at: new Date().toISOString() });
-        return { deferred: true, detail: 'wrote control-plane/concurrency.json; the launcher has no set-cap route yet' };
+        return { detail: `cap ${payload.max} for ${payload.node}: Orbit adapter reads control-plane/concurrency.json and pushes it to the launcher (POST /v1/config, launcher >= 0.1.5)` };
       case 'grok.action': {
         const data = scrub(await orbitPost('/api/grokbots-app', payload.body, grokKey()), secretValues());
         return { data, detail: 'proxied to Grok Bots' };
