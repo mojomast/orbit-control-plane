@@ -1,0 +1,13 @@
+node_modules/
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.env
+.env.*
+*.token
+config/tokens/*
+!config/tokens/.gitkeep
+!config/tokens/README.md
+.DS_Store
+*.log

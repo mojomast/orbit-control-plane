@@ -1,0 +1,16 @@
+{
+  "name": "orbit-control-plane",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Observability and control dashboard for Orbit orchestration, agents, and local OpenCode workers.",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.mjs",
+    "demo": "ORBIT_CP_DEMO=1 ORBIT_CP_BIND=127.0.0.1 node --disable-warning=ExperimentalWarning src/server.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 tests/*.test.mjs",
+    "connector": "node --disable-warning=ExperimentalWarning connector/orbit-connector.mjs"
+  }
+}

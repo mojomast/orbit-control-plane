@@ -1,0 +1,19 @@
+services:
+  control-plane:
+    build: .
+    network_mode: host
+    environment:
+      ORBIT_CP_BIND: ${ORBIT_CP_BIND:-127.0.0.1}
+      ORBIT_CP_PORT: ${ORBIT_CP_PORT:-8787}
+      ORBIT_CP_DATA: /data
+      ORBIT_CP_TOKEN_DIR: /tokens
+      ORBIT_CP_DOCKER: "0"
+      ORBIT_CP_TRUST_TAILSCALE: ${ORBIT_CP_TRUST_TAILSCALE:-0}
+      ORBIT_CP_TAILSCALE_USERS: ${ORBIT_CP_TAILSCALE_USERS:-}
+    volumes:
+      - control-plane-data:/data
+      - ./config/tokens:/tokens:ro
+    restart: unless-stopped
+
+volumes:
+  control-plane-data:
