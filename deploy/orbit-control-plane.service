@@ -1,0 +1,23 @@
+[Unit]
+Description=Orbit Control Plane
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=orbitcp
+Group=orbitcp
+EnvironmentFile=-/etc/orbit-control-plane/env
+WorkingDirectory=/opt/orbit-control-plane
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning /opt/orbit-control-plane/src/server.mjs
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/orbit-control-plane
+StateDirectory=orbit-control-plane
+
+[Install]
+WantedBy=multi-user.target

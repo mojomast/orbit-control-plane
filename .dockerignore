@@ -1,0 +1,9 @@
+.git
+data
+tests
+*.sqlite
+*.md
+!README.md
+config/tokens
+.env
+.env.*
