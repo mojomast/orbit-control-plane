@@ -79,3 +79,9 @@ same `surface_id`, so the card updates in place.
 2. Install `deploy/obs-snapshot.service` + `.timer` (user units) so the snapshot is
    rewritten every 2 minutes, with `--out` pointing at the plugin data directory.
 3. Restart the Hermes dashboard and gateway so the tool loads.
+
+## Screenshots
+
+`docs/observability/*-live-*.png` are real snapshots rendered through the real chain
+(`rizz_observability` -> uirizz `a2ui_render` present then update -> the uirizz Desktop card renderer).
+`*-busy-*` shots use a clearly marked fixture, because no bee was in flight when they were taken.
