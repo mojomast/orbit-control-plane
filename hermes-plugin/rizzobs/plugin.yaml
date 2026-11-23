@@ -1,0 +1,26 @@
+# Native Hermes plugin manifest (v2). Keep provides_* in sync with register().
+name: rizzobs
+version: "0.1.0"
+description: >-
+  Read-only rizzstack observability for Hermes chat. One tool, rizz_observability,
+  turns a redacted snapshot file (bees in flight, token usage, failures and
+  blockers, board stats, resources) into an A2UI Express card that the agent
+  passes to uirizz's a2ui_render. Disclosure: no network, no subprocesses, no
+  credentials, no hooks. It only reads one JSON file in its own plugin data
+  directory, written by the orbit-control-plane obs-snapshot script. Cards have
+  no buttons, so a click can never trigger an action.
+author: mojomast
+license: MIT
+homepage: https://github.com/mojomast/orbit-control-plane
+tags:
+  - observability
+  - a2ui
+  - read-only
+manifest_version: 2
+api_version: 1
+requires_hermes: ">=0.23.0"
+provides_tools:
+  - rizz_observability
+provides_hooks: []
+provides_middleware: []
+requires_env: []

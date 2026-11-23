@@ -30,6 +30,13 @@ Tests:
 npm test
 ```
 
+## Live observability for Hermes chat
+
+`scripts/obs-snapshot.mjs` writes a redacted snapshot (bees, tokens, failures, board, resources) and the
+`hermes-plugin/rizzobs` plugin turns it into uirizz cards. Design, data sources and security notes are in
+[docs/OBSERVABILITY.md](docs/OBSERVABILITY.md). Tests: `npm test` and, for the plugin,
+`cd hermes-plugin/rizzobs && python -m pytest tests` (set `UIRIZZ_SRC` to a uirizz checkout to also compile the cards).
+
 ## Tailscale
 
 By default the process binds the host's Tailscale IPv4 address (`tailscale ip -4`). If Tailscale is not installed it binds `127.0.0.1`. Set `ORBIT_CP_BIND` to override. It does not bind `0.0.0.0` unless `ORBIT_CP_DOCKER=1` and no address was chosen.

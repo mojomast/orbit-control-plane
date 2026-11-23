@@ -1,0 +1,14 @@
+[Unit]
+Description=Write the redacted rizzstack observability snapshot for Hermes
+
+[Service]
+Type=oneshot
+# Adjust --out to the rizzobs plugin data directory. Read-only: Orbit list, gh reads, node:os.
+ExecStart=/usr/bin/node /opt/orbit-control-plane/scripts/obs-snapshot.mjs --github --resources --out %h/.hermes/plugin-data/rizzobs/snapshot.json
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=90
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=%h/.hermes/plugin-data/rizzobs
