@@ -53,6 +53,26 @@ export function buildStats(store) {
   const inFlight = attempts.filter(attempt => attempt.inFlight).length;
   const queueDepth = attempts.filter(attempt => attempt.state === 'queued' || attempt.state === 'launcher_queued').length
     + tasks.filter(task => task.column === 'todo').length;
+  const attemptsById = new Map();
+  for (const attempt of attempts) {
+    if (typeof attempt.id === 'string' && attempt.id) attemptsById.set(attempt.id, attempt);
+  }
+  let retries = 0;
+  let maxChain = 0;
+  for (const attempt of attempts) {
+    if (typeof attempt.retryOf === 'string' && attempt.retryOf) retries += 1;
+    const seen = new Set();
+    if (typeof attempt.id === 'string') seen.add(attempt.id);
+    let chain = 1;
+    let parent = attempt.retryOf;
+    while (typeof parent === 'string' && parent && attemptsById.has(parent) && !seen.has(parent)) {
+      seen.add(parent);
+      chain += 1;
+      parent = attemptsById.get(parent).retryOf;
+    }
+    if (chain > maxChain) maxChain = chain;
+  }
+  const rework = { attempts: attempts.length, retries, maxChain, rate: attempts.length ? retries / attempts.length : null };
   return {
     models: [...models.values()].map(model => ({ ...model, costUsd: round(model.costUsd) })),
     successRate: terminal ? ok / terminal : null,
@@ -68,6 +88,7 @@ export function buildStats(store) {
     inFlight,
     queueDepth,
     launchers,
+    rework,
   };
 }
 
