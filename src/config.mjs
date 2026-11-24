@@ -43,6 +43,7 @@ function readSecretFile(file) {
 
 export function classifyToken(id, token) {
   if (id === 'viewer') return { id, role: 'viewer', node: null, token };
+  if (id === 'operator') return { id, role: 'operator', node: null, token };
   if (id === 'orbit') return { id, role: 'orbit', node: null, token };
   if (id === 'worker') return { id, role: 'worker', node: null, token };
   if (id.startsWith('worker_')) return { id, role: 'worker', node: id.slice('worker_'.length), token };
@@ -72,6 +73,7 @@ export function loadTokens(env = process.env) {
     ['orbit', env.ORBIT_CP_TOKEN_ORBIT, env.ORBIT_CP_TOKEN_FILE_ORBIT],
     ['worker', env.ORBIT_CP_TOKEN_WORKER, env.ORBIT_CP_TOKEN_FILE_WORKER],
     ['viewer', env.ORBIT_CP_TOKEN_VIEWER, env.ORBIT_CP_TOKEN_FILE_VIEWER],
+    ['operator', env.ORBIT_CP_TOKEN_OPERATOR, env.ORBIT_CP_TOKEN_FILE_OPERATOR],
   ];
   for (const [id, inline, file] of named) {
     let token = null;
@@ -92,6 +94,10 @@ export function loadConfig(env = process.env, overrides = {}) {
     .split(',')
     .map(item => item.trim())
     .filter(Boolean);
+  const operators = String(env.ORBIT_CP_OPERATORS || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
   const port = Number(overrides.port ?? env.ORBIT_CP_PORT ?? 8787);
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('ORBIT_CP_PORT must be a TCP port');
   return {
@@ -102,6 +108,7 @@ export function loadConfig(env = process.env, overrides = {}) {
     demo: overrides.demo ?? demo,
     trustTailscale: overrides.trustTailscale ?? trustTailscale,
     tailscaleUsers: overrides.tailscaleUsers ?? tailscaleUsers,
+    operators: overrides.operators ?? operators,
     leaseMs: Number(overrides.leaseMs ?? env.ORBIT_CP_INTENT_LEASE_MS ?? 30_000),
     tokens: overrides.tokens || loadTokens(env),
     cookieSecure: env.ORBIT_CP_COOKIE_SECURE === '1',
