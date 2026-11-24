@@ -6,7 +6,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { boot, bearer, ORBIT, VIEWER, OPERATOR } from './helpers.mjs';
-import { createSessions, sessionCookie, SESSION_TTL_MS } from '../src/auth.mjs';
+import * as auth from '../src/auth.mjs';
+
+const { createSessions, sessionCookie } = auth;
+const SESSION_TTL_MS = auth.SESSION_TTL_MS;
 import { classifyToken } from '../src/config.mjs';
 
 const CONTROL = [
@@ -21,7 +24,7 @@ const CONTROL = [
 ];
 
 test('session ttl matches the cookie and is exported', () => {
-  assert.equal(SESSION_TTL_MS, 12 * 60 * 60 * 1000);
+  assert.equal(auth.SESSION_TTL_MS, 12 * 60 * 60 * 1000);
   assert.match(sessionCookie('x'), new RegExp(`Max-Age=${SESSION_TTL_MS / 1000}`));
 });
 
@@ -40,6 +43,7 @@ test('sessions expire server-side', () => {
 });
 
 test('default sessions use the 12 h ttl', () => {
+  assert.equal(typeof SESSION_TTL_MS, 'number');
   let now = 0;
   const sessions = createSessions({ now: () => now });
   const id = sessions.create('owner', 'viewer');
