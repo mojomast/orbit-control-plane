@@ -13,7 +13,7 @@ from rizzobs_plugin import snapshot as snap_mod  # noqa: E402
 
 def sample(**over):
     base = {
-        "schema": "rizzstack.observability/1",
+        "schema": "rizzstack.observability/chat-card/1",
         "generatedAt": "2026-11-23T20:00:00.000Z",
         "windowHours": 24,
         "sources": ["orbit-attempts", "github", "box-resources"],
