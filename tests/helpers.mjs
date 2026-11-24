@@ -7,6 +7,7 @@ export const ORBIT = 'orbit-token-test-value-0001';
 export const WORKER = 'worker-token-test-value-0002';
 export const WORKER_NODE = 'worker-node-token-value-0003';
 export const VIEWER = 'viewer-token-test-value-0004';
+export const OPERATOR = 'operator-token-test-value-0005';
 
 export function tokenMap() {
   return new Map([
@@ -14,6 +15,7 @@ export function tokenMap() {
     ['worker', { id: 'worker', role: 'worker', node: null, token: WORKER }],
     ['worker_brrrrrrrr', { id: 'worker_brrrrrrrr', role: 'worker', node: 'brrrrrrrr', token: WORKER_NODE }],
     ['viewer', { id: 'viewer', role: 'viewer', node: null, token: VIEWER }],
+    ['operator', { id: 'operator', role: 'operator', node: null, token: OPERATOR }],
   ]);
 }
 
@@ -28,6 +30,7 @@ export async function boot(extra = {}) {
     tokens: extra.tokens || tokenMap(),
     trustTailscale: extra.trustTailscale ?? false,
     tailscaleUsers: extra.tailscaleUsers,
+    operators: extra.operators,
     leaseMs: extra.leaseMs ?? 30_000,
   }, {});
   return {

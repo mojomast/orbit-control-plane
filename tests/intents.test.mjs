@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { boot, bearer, ORBIT, VIEWER } from './helpers.mjs';
+import { boot, bearer, ORBIT, VIEWER, OPERATOR } from './helpers.mjs';
 
 test('intents lease once, expire, and close idempotently', async () => {
   const ctx = await boot({ leaseMs: 80 });
   try {
     const queued = await fetch(`${ctx.base}/api/v1/control/tasks`, {
-      method: 'POST', headers: bearer(VIEWER),
+      method: 'POST', headers: bearer(OPERATOR),
       body: JSON.stringify({ title: 'Write the firewall note', spec: 'Tailscale only', project: 'comfyrizz', group: 'Comfyrizz build', priority: 2, fileScope: ['docs/LOCAL_WORKERS.md'], dependencies: [] }),
     });
     assert.equal(queued.status, 202);

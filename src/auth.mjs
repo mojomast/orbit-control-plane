@@ -2,6 +2,8 @@ import { timingSafeEqual, randomBytes } from 'node:crypto';
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
+export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+
 export function remoteAddress(req) {
   return req.socket?.remoteAddress || '';
 }
@@ -36,20 +38,27 @@ export function tailscaleIdentity(req, config) {
   if (!login || login.length > 200 || /[\r\n]/.test(login)) return null;
   if (config.tailscaleUsers.length && !config.tailscaleUsers.includes(login)) return null;
   const name = String(req.headers['tailscale-user-name'] || login).replace(/[\r\n]/g, ' ').slice(0, 200);
-  return { id: login, actor: login, name, role: 'viewer', via: 'tailscale' };
+  const role = Array.isArray(config.operators) && config.operators.includes(login) ? 'operator' : 'viewer';
+  return { id: login, actor: login, name, role, via: 'tailscale' };
 }
 
-export function createSessions() {
+export function createSessions({ ttlMs = SESSION_TTL_MS, now = Date.now } = {}) {
   const sessions = new Map();
   return {
-    create(actor) {
+    create(actor, role = 'viewer') {
       const id = randomBytes(24).toString('base64url');
-      sessions.set(id, { actor, at: Date.now() });
+      sessions.set(id, { actor, role, expiresAt: now() + ttlMs });
       return id;
     },
     read(id) {
-      if (!id || !sessions.has(id)) return null;
-      return sessions.get(id);
+      if (!id) return null;
+      const session = sessions.get(id);
+      if (!session) return null;
+      if (session.expiresAt <= now()) {
+        sessions.delete(id);
+        return null;
+      }
+      return session;
     },
     destroy(id) { sessions.delete(id); },
   };
@@ -64,7 +73,7 @@ export function readCookie(req, name) {
   return '';
 }
 
-export function sessionCookie(id, { secure = false, maxAge = 12 * 60 * 60 } = {}) {
+export function sessionCookie(id, { secure = false, maxAge = SESSION_TTL_MS / 1000 } = {}) {
   const bits = [
     `ocp=${encodeURIComponent(id)}`,
     'HttpOnly',

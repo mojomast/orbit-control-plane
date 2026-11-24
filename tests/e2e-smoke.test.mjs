@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { mkdtemp, rm } from 'node:fs/promises';
-import { boot, bearer, ORBIT, VIEWER } from './helpers.mjs';
+import { boot, bearer, ORBIT, VIEWER, OPERATOR } from './helpers.mjs';
 import { createConnector } from '../connector/orbit-connector.mjs';
 
 const BOARD_KEY = 'board-key-test-value-aaaa';
@@ -87,9 +87,9 @@ test('connector pushes a fake Orbit and applies intents', async () => {
     assert.equal(attempts.attempts[0].sandbox, 'orbit-box');
     assert.equal(attempts.attempts[0].runId, 'run-1');
 
-    const cancel = await fetch(`${ctx.base}/api/v1/control/attempts/att1/cancel`, { method: 'POST', headers: bearer(VIEWER), body: '{}' });
+    const cancel = await fetch(`${ctx.base}/api/v1/control/attempts/att1/cancel`, { method: 'POST', headers: bearer(OPERATOR), body: '{}' });
     assert.equal(cancel.status, 202);
-    const pause = await fetch(`${ctx.base}/api/v1/control/dispatch`, { method: 'POST', headers: bearer(VIEWER), body: JSON.stringify({ paused: true }) });
+    const pause = await fetch(`${ctx.base}/api/v1/control/dispatch`, { method: 'POST', headers: bearer(OPERATOR), body: JSON.stringify({ paused: true }) });
     assert.equal(pause.status, 202);
     await connector.tick();
     assert.equal(seen.cancel, 1);

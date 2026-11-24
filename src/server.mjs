@@ -18,6 +18,7 @@ import { createColabStore } from './colab.mjs';
 
 const PUBLIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
+const CONTROL_PATH = /^\/api\/v1\/control\/(?:tasks(?:\/[^/]+\/(?:move|priority))?|attempts\/[^/]+\/(?:cancel|retry|review)|dispatch|concurrency)$/;
 
 export function createContext(config) {
   const store = openDatabase(config.dbPath);
@@ -42,9 +43,9 @@ export function createContext(config) {
     const tailscale = tailscaleIdentity(req, config);
     if (tailscale) return tailscale;
     const session = sessions.read(readCookie(req, 'ocp'));
-    if (session) return { id: session.actor, actor: session.actor, role: 'viewer', via: 'session', name: session.actor };
+    if (session) return { id: session.actor, actor: session.actor, role: session.role, via: 'session', name: session.actor };
     const auth = authenticateBearer(req.headers.authorization, config.tokens);
-    if (auth && (auth.role === 'viewer' || auth.role === 'orbit')) return { ...auth, actor: auth.id, name: auth.id };
+    if (auth && (auth.role === 'viewer' || auth.role === 'operator' || auth.role === 'orbit')) return { ...auth, actor: auth.id, name: auth.id };
     return null;
   }
 
@@ -79,8 +80,8 @@ export function createContext(config) {
     const body = await readJson(req, 4_000);
     const token = typeof body.token === 'string' ? body.token : '';
     const auth = authenticateBearer(`Bearer ${token}`, config.tokens);
-    if (!auth || (auth.role !== 'viewer' && auth.role !== 'orbit')) return send(res, 401, { error: 'invalid token' });
-    const id = sessions.create(auth.id);
+    if (!auth || (auth.role !== 'viewer' && auth.role !== 'operator' && auth.role !== 'orbit')) return send(res, 401, { error: 'invalid token' });
+    const id = sessions.create(auth.id, auth.role);
     return send(res, 200, { actor: auth.id }, { 'set-cookie': sessionCookie(id, { secure: config.cookieSecure }) });
   }
 
@@ -120,6 +121,9 @@ export function createContext(config) {
     const who = viewer(req);
     if (!who) return send(res, 401, { error: 'sign in required' });
     const path = url.pathname;
+    if (req.method === 'POST' && CONTROL_PATH.test(path) && who.role !== 'operator') {
+      return send(res, 403, { error: 'operator role required' });
+    }
     if (req.method === 'GET' && path === '/api/v1/me') {
       return send(res, 200, { actor: who.actor || who.id, name: who.name || who.actor || who.id, via: who.via, demo: !!config.demo, connector: hub.connected, paused: store.isPaused() });
     }
@@ -295,7 +299,7 @@ if (isMain) {
   start({}, process.env).then(app => {
     const log = createLogger(() => [...config.tokens.values()].map(entry => entry.token));
     log(`Orbit Control Plane on http://${config.bind}:${app.port} demo=${!!config.demo} tailscaleTrust=${!!config.trustTailscale}`);
-    if (!config.demo && !config.trustTailscale && ![...config.tokens.values()].some(entry => entry.role === 'viewer' || entry.role === 'orbit')) {
+    if (!config.demo && !config.trustTailscale && ![...config.tokens.values()].some(entry => entry.role === 'viewer' || entry.role === 'operator' || entry.role === 'orbit')) {
       log('no viewer token configured; the UI will refuse sessions until one is set or tailscale serve identity is trusted');
     }
   }).catch(error => {
