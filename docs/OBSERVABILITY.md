@@ -29,7 +29,7 @@ Orbit (loopback)  gh (read-only)  box stats
    per-attempt result files for token usage, `gh` for PRs, commits and red CI on
    `main`, and `node:os` for load, memory and disk. `gh` runs with an argv array,
    never a shell, with a timeout and a minimal environment.
-2. **Snapshot** (`rizzstack.observability/1`). Counts, short ids (`bee-1a2b`), repo
+2. **Snapshot** (`rizzstack.observability/chat-card/1`). Counts, short ids (`bee-1a2b`), repo
    and check names, percentages. Every string is passed through `sanitizeText`:
    IPs, hostnames, e-mails, key-shaped strings, paths, control characters and
    `${` are removed; lengths are capped. Orbit node names are dropped, and
@@ -85,3 +85,18 @@ same `surface_id`, so the card updates in place.
 `docs/observability/*-live-*.png` are real snapshots rendered through the real chain
 (`rizz_observability` -> uirizz `a2ui_render` present then update -> the uirizz Desktop card renderer).
 `*-busy-*` shots use a clearly marked fixture, because no bee was in flight when they were taken.
+
+
+## Schema id rename (compatibility note)
+
+The chat-card snapshot was called `rizzstack.observability/1`, which was easy to
+confuse with the workflow collector's `rizzstack.observability/snapshot/1` (the
+document the Observatory and Hive apps read). It is now
+`rizzstack.observability/chat-card/1`. The fields are unchanged.
+
+- The collector writes only the new id.
+- The `rizzobs` plugin reads the new id and still accepts the legacy
+  `rizzstack.observability/1` so an existing `snapshot.json` keeps working until
+  the next collector run rewrites it. Every other id is still refused.
+- The legacy read path can be removed once deployed collectors have rewritten
+  their snapshots.

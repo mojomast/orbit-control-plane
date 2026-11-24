@@ -1,11 +1,12 @@
-// Redacted rizzstack observability snapshot (schema rizzstack.observability/1).
+// Redacted rizzstack observability chat-card snapshot (schema rizzstack.observability/chat-card/1;
+// renamed from rizzstack.observability/1, which readers still accept).
 //
 // Pure functions only: no network, no filesystem, no credentials. Collectors
 // (scripts/obs-snapshot.mjs) gather raw inputs and hand them here. The output
 // carries counts, short labels and repo/check names, and nothing else, so a chat
 // card built from it cannot leak keys, hosts, IPs or paths.
 
-export const SCHEMA = 'rizzstack.observability/1';
+export const SCHEMA = 'rizzstack.observability/chat-card/1';
 
 const IN_FLIGHT = new Set(['running', 'starting', 'backoff', 'cancel_requested', 'disconnected']);
 const QUEUED = new Set(['queued', 'launcher_queued']);

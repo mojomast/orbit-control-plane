@@ -23,7 +23,7 @@ test('CLI builds a redacted snapshot file from an attempts fixture', async () =>
     assert.match(stdout, /wrote snapshot/);
     const text = await readFile(out, 'utf8');
     const snap = JSON.parse(text);
-    assert.equal(snap.schema, 'rizzstack.observability/1');
+    assert.equal(snap.schema, 'rizzstack.observability/chat-card/1');
     assert.equal(snap.bees.active, 1);
     assert.equal(snap.problems.counts.failedRuns, 1);
     assert.equal(snap.resources.available, true);

@@ -7,7 +7,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCHEMA = "rizzstack.observability/1"
+SCHEMA = "rizzstack.observability/chat-card/1"
+# Read-only compatibility: snapshots written before the rename. Producers emit SCHEMA only.
+LEGACY_SCHEMAS = frozenset({"rizzstack.observability/1"})
 MAX_BYTES = 256 * 1024
 STALE_AFTER_MIN = 15
 
@@ -78,7 +80,7 @@ def load_snapshot(now: float) -> tuple[dict[str, Any], float, bool]:
         raise
     except (OSError, ValueError):
         raise _bad("The snapshot file could not be read as JSON.")
-    if not isinstance(data, dict) or data.get("schema") != SCHEMA:
+    if not isinstance(data, dict) or data.get("schema") not in ({SCHEMA} | LEGACY_SCHEMAS):
         raise _bad("The snapshot has an unknown schema.")
     try:
         generated = datetime.fromisoformat(str(data.get("generatedAt", "")).replace("Z", "+00:00"))
