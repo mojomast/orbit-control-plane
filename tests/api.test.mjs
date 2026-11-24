@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { boot, bearer, ORBIT, VIEWER } from './helpers.mjs';
+import { boot, bearer, ORBIT, VIEWER, OPERATOR } from './helpers.mjs';
 
 const ATTEMPT_STATES = ['queued', 'launcher_queued', 'running', 'disconnected', 'cancel_requested', 'outcome_unknown', 'not_started', 'succeeded', 'failed', 'cancelled', 'superseded'];
 
@@ -48,7 +48,7 @@ test('board ingest round trip and move intent', async () => {
     const board = await (await fetch(`${ctx.base}/api/v1/board`, { headers: bearer(VIEWER) })).json();
     assert.equal(board.tasks[0].column, 'doing');
     const moved = await fetch(`${ctx.base}/api/v1/control/tasks/t1/move`, {
-      method: 'POST', headers: bearer(VIEWER), body: JSON.stringify({ column: 'review', note: 'ready' }),
+      method: 'POST', headers: bearer(OPERATOR), body: JSON.stringify({ column: 'review', note: 'ready' }),
     });
     assert.equal(moved.status, 202);
     const after = await (await fetch(`${ctx.base}/api/v1/board/tasks/t1`, { headers: bearer(VIEWER) })).json();
