@@ -1,6 +1,6 @@
 // Contract for orbit-control-plane's GitHub Actions (rizzstack follow-ups item 23;
 // shared rules in rizzstack/codemap/ci-gates.md). CI must run `npm test` on Node 22,
-// the rizzobs plugin tests, a full-history gitleaks scan and a report-only
+// the rizzobs plugin tests, a full-history gitleaks scan and a blocking
 // slop-lint ratchet, with SHA-pinned actions, read-only tokens and no persisted
 // credentials.
 import test from 'node:test';
@@ -40,10 +40,13 @@ test('CI scans full history with a checksum-verified gitleaks', () => {
   assert.match(t, /gitleaks detect --source \. --redact/);
 });
 
-test('slop-lint runs report-only against a committed baseline', () => {
+test('slop-lint blocks new findings against a committed baseline', () => {
   const t = read('slop-lint.yml');
   assert.match(t, /^  slop-lint:\s*\n    name:\s*slop-lint\s*$/m);
-  assert.match(t, /node scripts\/slop-lint\.mjs check src connector scripts public --baseline slop-baseline\.json --report-only --pass-on-unpruned/);
+  assert.match(t, /node scripts\/slop-lint\.mjs check src connector scripts public --baseline slop-baseline\.json --pass-on-unpruned/);
+  // Blocking ratchet: findings above the baseline fail the job.
+  assert.doesNotMatch(t, /--report-only/);
+  assert.doesNotMatch(t, /continue-on-error/);
   assert.ok(t.includes('GITHUB_STEP_SUMMARY'));
   assert.ok(existsSync(resolve(ROOT, 'slop-baseline.json')), 'slop-baseline.json missing');
   const owners = readFileSync(resolve(ROOT, '.github/CODEOWNERS'), 'utf8');
