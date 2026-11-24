@@ -1,0 +1,23 @@
+{
+  "connector/orbit-connector.mjs": {
+    "empty-catch": 2
+  },
+  "src/config.mjs": {
+    "empty-catch": 1
+  },
+  "src/db.mjs": {
+    "empty-catch": 1
+  },
+  "src/http-util.mjs": {
+    "empty-catch": 2
+  },
+  "src/hub.mjs": {
+    "empty-catch": 1
+  },
+  "src/server.mjs": {
+    "empty-catch": 1
+  },
+  "src/ws.mjs": {
+    "empty-catch": 1
+  }
+}
