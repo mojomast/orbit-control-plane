@@ -1,0 +1,14 @@
+{
+  "id": "orbit-control-plane-lease-tamper-gate",
+  "lease_version": "rizzstack.lease/1",
+  "source_rev": "7ef0bf4da764ecd8204490f309a610bf82b413a3",
+  "scope": {
+    "assigned_files": [
+      ".github/scripts/lease_tamper.py",
+      ".github/workflows/ci.yml",
+      ".rizzstack/lease.json"
+    ],
+    "test_files": [],
+    "prohibited": []
+  }
+}
