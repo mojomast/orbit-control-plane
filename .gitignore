@@ -11,3 +11,5 @@ config/tokens/*
 !config/tokens/README.md
 .DS_Store
 *.log
+__pycache__/
+*.pyc
