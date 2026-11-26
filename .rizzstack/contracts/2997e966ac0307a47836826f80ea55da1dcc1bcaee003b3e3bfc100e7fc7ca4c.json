@@ -1,0 +1,123 @@
+{
+  "contract_version": "acdd/1",
+  "id": "wave-b-b5b",
+  "title": "The control plane reads rizzstack.attempt/1 states and reports an unknown state explicitly",
+  "outcome": {
+    "summary": "orbit-control-plane maps every attempt state it serves through the rizzstack.attempt/1 vocabulary instead of comparing raw launcher strings, keeps its client-side lifecycle columns unchanged, and surfaces a state it does not know as 'unknown' with the raw value preserved. Retry and review guards keep their meaning: only a succeeded (or review) attempt can be reviewed, and an in-flight attempt cannot be retried.",
+    "observable_behavior": [
+      "GET /api/v1/attempts and /api/v1/attempts/<id> report state from the rizzstack.attempt/1 table; a raw state outside it becomes unknown and remote_state keeps the original.",
+      "The review guard accepts only succeeded/review and the retry guard refuses an in-flight attempt, unchanged by the mapping.",
+      "A mapping is a pure function with a closed table, so an added launcher state is a one-line table change with a test."
+    ]
+  },
+  "interfaces": [
+    {
+      "name": "src/control.mjs state mapping",
+      "kind": "function",
+      "change": "modify",
+      "notes": "Add ATTEMPT_STATES map + map_attempt_state(state) -> {state, remote_state}; use it in the attempt readers and the review/retry guards."
+    },
+    {
+      "name": "src/server.mjs attempt routes",
+      "kind": "http",
+      "change": "modify",
+      "notes": "Serve the mapped state; keep the response shape and the client_state columns."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-001",
+      "statement": "a known launcher state is reported through the table and an unknown one becomes unknown with remote_state preserved",
+      "verification": "test",
+      "tests": [
+        "tests/attempt-states.test.mjs::known states map through the table and an unknown state is reported as unknown"
+      ]
+    },
+    {
+      "id": "AC-002",
+      "statement": "the review guard accepts only succeeded/review and the retry guard refuses an in-flight attempt",
+      "verification": "test",
+      "tests": [
+        "tests/attempt-states.test.mjs::the review and retry guards keep their meaning"
+      ],
+      "regression": true
+    }
+  ],
+  "dependencies": [
+    "B3 (mojomast/workflow#177, merged 4d22c070 as 1ea44bea) freezes the rizzstack.attempt/1 state vocabulary",
+    "RED commit b1295f18af39128b40bc2b020d4f875bb9363185 is test-only: tests/attempt-states.test.mjs fails because an unknown launcher state is served raw instead of unknown, and no client_state is preserved; the review/retry guards pass at source_rev"
+  ],
+  "assumptions": [
+    "the control plane reads attempt states from its own store and never calls the worker launcher directly",
+    "the client lifecycle columns are unchanged; the mapping is presentation plus guard input"
+  ],
+  "scope": {
+    "assigned_files": [
+      "src/control.mjs",
+      "src/server.mjs"
+    ],
+    "test_files": [
+      "tests/attempt-states.test.mjs"
+    ],
+    "read_only": [
+      "src/columns.mjs"
+    ],
+    "prohibited": [
+      "tests/attempt-states.test.mjs",
+      "CHANGELOG.md",
+      ".github/workflows/**",
+      "package.json",
+      "package-lock.json"
+    ]
+  },
+  "source_rev": "b1295f18af39128b40bc2b020d4f875bb9363185",
+  "tdd": {
+    "applicable": false,
+    "reason": "node:test suite; bundlebees TDD collection is pytest-only. RED was recorded by hand on the RED commit and is described in the approval list.",
+    "test_first": true
+  },
+  "verification": {
+    "independent": true,
+    "commands": [
+      "node --test tests/attempt-states.test.mjs"
+    ],
+    "integration": false
+  },
+  "evidence_required": [
+    "red",
+    "green",
+    "review"
+  ],
+  "authorization": {
+    "human_gates": [
+      "merge",
+      "tag",
+      "release",
+      "deploy",
+      "publish"
+    ],
+    "not_authorized": [
+      "merge",
+      "deploy",
+      "restart",
+      "tag",
+      "release",
+      "publish",
+      "force-push",
+      "branch deletion"
+    ]
+  },
+  "risk": {
+    "tier": "medium",
+    "reasons": [
+      "changes what the control plane reports for every attempt and what its guards accept"
+    ],
+    "blast_radius": "the control-plane attempt API, the pane and the review/retry guards"
+  },
+  "review": {
+    "status": "approved",
+    "approved_by": "Kyle (owner), typed approval in chat, 2026-11-26: approved: 2997e966 (B5b)",
+    "approved_at": "2026-11-26T22:40:12Z",
+    "contract_sha256": "2997e966ac0307a47836826f80ea55da1dcc1bcaee003b3e3bfc100e7fc7ca4c"
+  }
+}
