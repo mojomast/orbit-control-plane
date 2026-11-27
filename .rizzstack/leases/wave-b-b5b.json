@@ -1,0 +1,39 @@
+{
+ "id": "wave-b-b5b",
+ "lease_version": "rizzstack.lease/1",
+ "slice": "wave-b-b5b",
+ "branch": "feat/wave-b-b5b",
+ "contract_id": "wave-b-b5b",
+ "contract_sha256": "2997e966ac0307a47836826f80ea55da1dcc1bcaee003b3e3bfc100e7fc7ca4c",
+ "source_rev": "b1295f18af39128b40bc2b020d4f875bb9363185",
+ "scope": {
+  "assigned_files": [
+   "src/control.mjs",
+   "src/server.mjs"
+  ],
+  "test_files": [
+   "tests/attempt-states.test.mjs"
+  ],
+  "prohibited": [
+   "tests/attempt-states.test.mjs",
+   "CHANGELOG.md",
+   ".github/workflows/**",
+   "package.json",
+   "package-lock.json"
+  ],
+  "read_only": [
+   "src/columns.mjs"
+  ]
+ },
+ "derived_from": {
+  "contract": "B5b",
+  "approved_by": "Kyle (owner), typed approval in chat, 2026-11-26: approved: 2997e966 (B5b)",
+  "approved_at": "2026-11-26T22:40:12Z"
+ },
+ "review": {
+  "status": "approved",
+  "approved_by": "Kyle (owner), typed approval in chat, 2026-11-26: approved: 2997e966 (B5b)",
+  "approved_at": "2026-11-26T22:40:12Z",
+  "contract_sha256": "2997e966ac0307a47836826f80ea55da1dcc1bcaee003b3e3bfc100e7fc7ca4c"
+ }
+}
