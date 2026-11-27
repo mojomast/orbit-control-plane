@@ -66,7 +66,13 @@ test('every workflow pins actions by SHA, drops the token and stays read-only', 
     assert.equal(dropped, checkouts, `${name}: every checkout needs persist-credentials: false`);
     const perms = t.match(/^permissions:\s*\n((?:[ \t]+.*\n)+)/m);
     assert.ok(perms && perms[1].includes('contents: read'), `${name}: read-only permissions`);
-    assert.doesNotMatch(t, /^\s+[a-z-]+:\s*write\s*$/m, name);
+    const writes = (t.match(/^\s+[a-z-]+:\s*write\s*$/gm) || []).map((line) => line.trim());
+    if (name === 'review-rerun.yml') {
+      // This job needs actions: write to call actions/runs/<id>/rerun-failed-jobs.
+      assert.deepEqual(writes, ['actions: write'], `${name}: only actions: write`);
+    } else {
+      assert.deepEqual(writes, [], `${name}: no write permissions`);
+    }
     assert.ok(!t.includes('secrets.'), `${name}: no secrets`);
   }
 });
