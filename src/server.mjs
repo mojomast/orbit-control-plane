@@ -15,6 +15,19 @@ import { buildStats, snapshotSample } from './stats.mjs';
 import { handleGrok } from './grok.mjs';
 import { seedDemo } from './seed.mjs';
 import { createColabStore } from './colab.mjs';
+import { ATTEMPT_STATES } from './columns.mjs';
+
+const KNOWN_ATTEMPT_STATES = new Set([...ATTEMPT_STATES, 'provisioning', 'unknown', 'review']);
+
+function presentAttempt(attempt) {
+  const clientState = attempt.state;
+  return {
+    ...attempt,
+    state: KNOWN_ATTEMPT_STATES.has(clientState) ? clientState : 'unknown',
+    remote_state: clientState,
+    client_state: clientState,
+  };
+}
 
 const PUBLIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
@@ -148,14 +161,15 @@ export function createContext(config) {
     if (req.method === 'GET' && taskMatch) {
       const task = store.getTask(decodeURIComponent(taskMatch[1]));
       if (!task) return send(res, 404, { error: 'unknown task' });
+      task.attempts = task.attempts.map(presentAttempt);
       return send(res, 200, { task });
     }
-    if (req.method === 'GET' && path === '/api/v1/attempts') return send(res, 200, { attempts: store.listAttempts() });
+    if (req.method === 'GET' && path === '/api/v1/attempts') return send(res, 200, { attempts: store.listAttempts().map(presentAttempt) });
     const attemptMatch = path.match(/^\/api\/v1\/attempts\/([^/]+)$/);
     if (req.method === 'GET' && attemptMatch) {
       const attempt = store.getAttempt(decodeURIComponent(attemptMatch[1]));
       if (!attempt) return send(res, 404, { error: 'unknown attempt' });
-      return send(res, 200, { attempt });
+      return send(res, 200, { attempt: presentAttempt(attempt) });
     }
     if (req.method === 'GET' && path === '/api/v1/events') {
       const events = store.listEvents(url.searchParams.get('since') || 0, url.searchParams.get('limit') || 200);
@@ -196,7 +210,7 @@ export function createContext(config) {
   }
 
   function overview() {
-    const attempts = store.listAttempts();
+    const attempts = store.listAttempts().map(presentAttempt);
     const intents = store.listIntents();
     return {
       demo: !!config.demo,
