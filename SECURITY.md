@@ -30,6 +30,10 @@ The control plane can queue work that Orbit will run. Treat the host like the Or
 
 Cua auto-approves ACP permissions inside the sandbox. Those events are stored and shown as auto-approved. They do not render as a decision Kyle still owes. A Grok local-tool or auto-review card that is genuinely pending still does.
 
+## GitHub identity
+
+The control plane doesn't post reviews, open PRs or merge. Its observability collector only reads (`gh pr list`, `gh run list`, `gh api` commits) with whatever `GH_TOKEN` the host gives it. On a rizzstack install, that should be an installation token from the `rizzstack-coordinator[bot]` GitHub App, narrowed to read permissions when it's minted (`contents`, `pull_requests`, `actions` and `checks` read) and refreshed before its one-hour expiry. It should not be the owner's personal token. Merging, CI reruns and reviews belong to the coordinator and reviewer apps, and approvals to the owner's account. Setup and token minting: [rizzstack docs/github-apps.md](https://github.com/mojomast/rizzstack/blob/main/docs/github-apps.md).
+
 ## Data
 
 SQLite lives in `ORBIT_CP_DATA` (default `./data`, gitignored). It holds board text, attempt metadata, token counts, file paths, and sha256 digests. It does not hold provider keys. Wipe the directory to drop the read model; Orbit's ledger is untouched.
